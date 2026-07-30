@@ -7,12 +7,15 @@ class_name EnemySpawner
 signal enemy_spawned(enemy: Node)
 
 const SLIME_SCENE := preload("res://scenes/enemies/Slime.tscn")
+const FLYER_SCENE := preload("res://scenes/enemies/Flyer.tscn")
 
 @export var start_interval: float = 2.0
 @export var min_interval: float = 0.5
 @export var max_active: int = 60
 @export var spawn_margin: float = 140.0   ## distancia horizontal extra más allá del borde de pantalla
 @export var min_player_distance: float = 380.0
+@export_range(0.0, 1.0) var flyer_chance: float = 0.35   ## probabilidad de que la aparición sea un volador
+@export var flyer_min_y: float = 350.0    ## altura mínima (arriba) para voladores
 
 var _player: Node2D
 var _arena_rect: Rect2
@@ -55,15 +58,17 @@ func _spawn_wave() -> void:
 		current += 1
 
 func _spawn_one() -> void:
-	var pos := _pick_spawn_position()
-	var slime := SLIME_SCENE.instantiate()
-	get_tree().current_scene.add_child(slime)
-	slime.global_position = pos
-	enemy_spawned.emit(slime)
+	# Elegir tipo: slime (camina por el suelo) o volador (viene por el aire).
+	var is_flyer := randf() < flyer_chance
+	var scene := FLYER_SCENE if is_flyer else SLIME_SCENE
+	var enemy := scene.instantiate()
+	get_tree().current_scene.add_child(enemy)
+	enemy.global_position = _pick_spawn_position(is_flyer)
+	enemy_spawned.emit(enemy)
 
-## Genera a un costado del jugador (izquierda o derecha), fuera de la pantalla y
-## justo por encima del suelo, para que caigan y caminen hacia el jugador.
-func _pick_spawn_position() -> Vector2:
+## Genera a un costado del jugador (fuera de pantalla). Los slimes aparecen sobre
+## el suelo; los voladores aparecen a una altura aérea aleatoria.
+func _pick_spawn_position(is_flyer: bool = false) -> Vector2:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var off_screen: float = viewport_size.x * 0.5 + spawn_margin
 	# Lado preferente: el que quede dentro de la arena; si ambos sirven, al azar.
@@ -81,7 +86,11 @@ func _pick_spawn_position() -> Vector2:
 	else:
 		x = candidates[randi() % candidates.size()]
 	x = clamp(x, _arena_rect.position.x + 40.0, _arena_rect.end.x - 40.0)
-	# Aparece un poco por encima del suelo; la gravedad los asienta.
+	if is_flyer:
+		# Altura aérea aleatoria, entre flyer_min_y y algo por encima del suelo.
+		var y := randf_range(flyer_min_y, _ground_y - 200.0)
+		return Vector2(x, y)
+	# Slime: un poco por encima del suelo; la gravedad lo asienta.
 	return Vector2(x, _ground_y - 60.0)
 
 ## Detiene la generación (llamado al aparecer el jefe).

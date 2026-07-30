@@ -15,6 +15,7 @@ func _ready() -> void:
 	await _test_projectile_damage_and_pierce()
 	await _test_explosion()
 	await _test_golem_wave()
+	await _test_flyer_death()
 	print("=== Resultado: %d PASS, %d FAIL ===" % [_passed, _failed])
 	if _failed > 0:
 		print("SELFTEST_FAILED")
@@ -111,9 +112,14 @@ func _test_projectile_damage_and_pierce() -> void:
 	var initial_hp: float = slime.health
 	slime.take_damage(10.0)
 	_check(slime.health == initial_hp - 10.0, "slime recibe 10 de daño")
-	slime.take_damage(10.0)
+	slime.take_damage(10.0)  # llega a 0 => arranca animación de muerte
 	await get_tree().physics_frame
-	_check(not is_instance_valid(slime), "slime muere a 0 de vida")
+	_check(is_instance_valid(slime) and not slime.is_in_group("enemies"), "slime a 0 de vida entra en muerte")
+	# Reactivamos su física para que corra la animación de muerte y se libere.
+	slime.set_physics_process(true)
+	for i in range(50):
+		await get_tree().physics_frame
+	_check(not is_instance_valid(slime), "slime se libera tras la animación de muerte")
 
 	# Penetración: un proyectil con penetration=1 debe golpear 2 slimes distintos.
 	var s := SpellData.new()
@@ -163,3 +169,21 @@ func _test_golem_wave() -> void:
 	_check(player.health < hp_before, "onda del jefe daña al jugador en el área")
 	if is_instance_valid(player): player.queue_free()
 	if is_instance_valid(wave): wave.queue_free()
+
+func _test_flyer_death() -> void:
+	var flyer: Node = load("res://scenes/enemies/Flyer.tscn").instantiate()
+	add_child(flyer)
+	flyer.global_position = Vector2(600, 400)
+	await get_tree().physics_frame
+	var got_exp := [0]
+	flyer.died.connect(func(_p: Vector2, xp: int) -> void: got_exp[0] = xp)
+	# Matarlo => arranca la animación de muerte.
+	flyer.take_damage(flyer.max_health)
+	await get_tree().physics_frame
+	_check(got_exp[0] > 0, "el volador emite experiencia al morir")
+	_check(is_instance_valid(flyer) and flyer.sprite.hframes == 8, "cambia al spritesheet de muerte (8 frames)")
+	_check(not flyer.is_in_group("enemies"), "el volador moribundo deja de contar como enemigo")
+	# Esperar a que termine la animación (8 frames / 12 fps ~ 0.66s) y se libere.
+	for i in range(60):
+		await get_tree().physics_frame
+	_check(not is_instance_valid(flyer), "el volador se libera al terminar la animación de muerte")

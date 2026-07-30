@@ -80,9 +80,9 @@ func _test_flow_victory() -> void:
 func _test_flow_defeat() -> void:
 	var game: Node = _make_game()
 	await _wait(3)
-	# Matar al jugador => derrota.
+	# Matar al jugador => derrota (tras la animación de muerte del mago).
 	game.player.take_damage(9999.0)
-	await _wait(3)
+	await _wait(50)
 	_check(game.game_over and game.end_screen.visible, "morir => pantalla de derrota")
 	_check(game.end_screen.title_label.text.contains("DERROTADO"), "título de derrota correcto")
 	get_tree().paused = false

@@ -21,9 +21,13 @@ signal experience_gained(amount: int)   # reenvía la exp recogida al sistema de
 const TEX_IDLE := preload("res://assets/sprites/player_idle.png")
 const TEX_RUN := preload("res://assets/sprites/player_run.png")
 const TEX_SHOOT := preload("res://assets/sprites/player_shoot.png")
+const TEX_DEATH := preload("res://assets/sprites/player_death.png")
 const IDLE_FRAMES := 4
 const RUN_FRAMES := 4
 const SHOOT_FRAMES := 5
+const DEATH_FRAMES := 4
+
+@export var death_fps: float = 8.0
 
 ## Estados de animación, en orden de prioridad ascendente.
 enum AnimState { IDLE, MOVING, SHOOTING }
@@ -161,7 +165,19 @@ func _die() -> void:
 		return
 	_dead = true
 	velocity = Vector2.ZERO
+	# Reproduce la animación de muerte y recién después avisa (la pantalla de
+	# derrota pausa el árbol, por eso se muestra al terminar la animación).
+	await _play_death()
 	died.emit()
+
+## Anima el spritesheet de muerte una sola vez.
+func _play_death() -> void:
+	visual.modulate = Color.WHITE
+	sprite.texture = TEX_DEATH
+	sprite.hframes = DEATH_FRAMES
+	for i in range(DEATH_FRAMES):
+		sprite.frame = i
+		await get_tree().create_timer(1.0 / death_fps).timeout
 
 ## Llamado por las esferas de experiencia al ser recogidas.
 func collect_experience(amount: int) -> void:

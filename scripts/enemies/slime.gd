@@ -13,14 +13,21 @@ signal died(position: Vector2, exp_value: int)
 @export var separation_radius: float = 34.0
 @export var separation_strength: float = 40.0
 @export var gravity: float = 1400.0
-@export var anim_fps: float = 8.0   ## velocidad de la animación de caminado
+@export var anim_fps: float = 8.0    ## velocidad de la animación de caminado
+@export var death_fps: float = 12.0  ## velocidad de la animación de muerte
+
+const TEX_WALK := preload("res://assets/sprites/enemy_walk.png")
+const TEX_DEATH := preload("res://assets/sprites/enemy_death.png")
+const DEATH_FRAMES := 6
 
 @onready var visual: Node2D = $Visual
 @onready var sprite: Sprite2D = $Visual/Sprite
+@onready var collision: CollisionShape2D = $CollisionShape2D
 
 var health: float
 var _player: Node2D
 var _dead: bool = false
+var _dying: bool = false
 var _anim_time: float = 0.0
 
 func _ready() -> void:
@@ -29,6 +36,14 @@ func _ready() -> void:
 	_player = get_tree().get_first_node_in_group("player")
 
 func _physics_process(delta: float) -> void:
+	if _dying:
+		# Mientras muere sigue asentado por gravedad, pero no persigue.
+		if not is_on_floor():
+			velocity.y += gravity * delta
+		velocity.x = 0.0
+		move_and_slide()
+		_animate_death(delta)
+		return
 	if _dead:
 		return
 	# Gravedad.
@@ -72,21 +87,39 @@ func get_contact_damage() -> float:
 
 ## Recibe daño de proyectiles/explosiones.
 func take_damage(amount: float) -> void:
-	if _dead:
+	if _dead or _dying:
 		return
 	health -= amount
 	_flash()
 	if health <= 0.0:
-		_die()
+		_start_death()
 
 func _flash() -> void:
 	var tween := create_tween()
 	visual.modulate = Color(2.0, 2.0, 2.0)
 	tween.tween_property(visual, "modulate", Color.WHITE, 0.15)
 
-func _die() -> void:
-	if _dead:
+## Arranca la animación de muerte: notifica al juego (exp/bajas) de inmediato,
+## deja de dañar y de recibir impactos, y cambia al spritesheet de muerte.
+func _start_death() -> void:
+	if _dying or _dead:
 		return
-	_dead = true
+	_dying = true
+	remove_from_group("enemies")
+	collision.set_deferred("disabled", true)
+	visual.modulate = Color.WHITE
+	sprite.texture = TEX_DEATH
+	sprite.hframes = DEATH_FRAMES
+	sprite.frame = 0
+	_anim_time = 0.0
 	died.emit(global_position, exp_value)
-	queue_free()
+
+## Avanza la animación de muerte una vez y libera al terminar.
+func _animate_death(delta: float) -> void:
+	_anim_time += delta * death_fps
+	var f := int(_anim_time)
+	if f >= DEATH_FRAMES:
+		_dead = true
+		queue_free()
+		return
+	sprite.frame = f
