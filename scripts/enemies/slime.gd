@@ -12,7 +12,7 @@ signal died(position: Vector2, exp_value: int)
 @export var exp_value: int = 5
 @export var separation_radius: float = 34.0
 @export var separation_strength: float = 40.0
-
+@export var gravity: float = 1400.0
 @export var anim_fps: float = 8.0   ## velocidad de la animación de caminado
 
 @onready var visual: Node2D = $Visual
@@ -28,17 +28,22 @@ func _ready() -> void:
 	health = max_health
 	_player = get_tree().get_first_node_in_group("player")
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if _dead:
 		return
+	# Gravedad.
+	if not is_on_floor():
+		velocity.y += gravity * delta
 	if _player == null or not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player")
+		velocity.x = 0.0
+		move_and_slide()
 		return
-	var to_player := (_player.global_position - global_position)
-	var chase := to_player.normalized() * move_speed
-	# Separación básica: empuja lejos de enemigos cercanos.
-	var sep := _separation_vector()
-	velocity = chase + sep
+	# Persecución SOLO horizontal (caminan a la altura del suelo).
+	var dir_x := signf(_player.global_position.x - global_position.x)
+	# Separación horizontal para no amontonarse.
+	var sep_x := _separation_x()
+	velocity.x = dir_x * move_speed + sep_x
 	move_and_slide()
 	_animate(velocity)
 
@@ -49,16 +54,17 @@ func _animate(vel: Vector2) -> void:
 	if absf(vel.x) > 1.0:
 		sprite.flip_h = vel.x < 0.0
 
-## Suma de repulsiones respecto a enemigos dentro del radio de separación.
-func _separation_vector() -> Vector2:
-	var result := Vector2.ZERO
+## Repulsión horizontal respecto a enemigos cercanos, para no apilarse.
+func _separation_x() -> float:
+	var result := 0.0
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e == self or not is_instance_valid(e):
 			continue
-		var diff: Vector2 = global_position - e.global_position
-		var d := diff.length()
-		if d > 0.0 and d < separation_radius:
-			result += diff.normalized() * (1.0 - d / separation_radius)
+		var dx: float = global_position.x - e.global_position.x
+		var dist := absf(dx)
+		if dist < separation_radius:
+			var push := (1.0 - dist / separation_radius)
+			result += (signf(dx) if dx != 0.0 else 1.0) * push
 	return result * separation_strength
 
 func get_contact_damage() -> float:

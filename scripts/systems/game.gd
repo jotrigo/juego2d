@@ -10,6 +10,7 @@ const GOLEM_SCENE := preload("res://scenes/enemies/ArcaneGolem.tscn")
 
 @export var arena_size: Vector2 = Vector2(2200, 1400)
 @export var boss_time: float = 300.0   ## 5 minutos
+@export var ground_y: float = 1250.0   ## altura de la superficie del suelo (plataformas)
 
 @onready var spawner: EnemySpawner = $EnemySpawner
 @onready var level_system: LevelSystem = $LevelSystem
@@ -51,7 +52,7 @@ func _spawn_player() -> void:
 	player.died.connect(_on_player_died)
 
 func _setup_spawner() -> void:
-	spawner.setup(player, arena_rect)
+	spawner.setup(player, arena_rect, ground_y)
 	spawner.enemy_spawned.connect(_on_enemy_spawned)
 
 func _connect_ui() -> void:
@@ -122,12 +123,11 @@ func _spawn_boss() -> void:
 	hud.show_boss_bar(golem)
 
 func _boss_spawn_position() -> Vector2:
-	# Aparece a cierta distancia del jugador, dentro de la arena.
-	var dir := Vector2.RIGHT.rotated(randf() * TAU)
-	var pos: Vector2 = player.global_position + dir * 500.0
-	pos.x = clamp(pos.x, arena_rect.position.x + 100.0, arena_rect.end.x - 100.0)
-	pos.y = clamp(pos.y, arena_rect.position.y + 100.0, arena_rect.end.y - 100.0)
-	return pos
+	# Aparece a un costado del jugador, sobre el suelo (cae por gravedad).
+	var side := 1.0 if randf() < 0.5 else -1.0
+	var x: float = player.global_position.x + side * 500.0
+	x = clamp(x, arena_rect.position.x + 100.0, arena_rect.end.x - 100.0)
+	return Vector2(x, ground_y - 120.0)
 
 func _on_boss_died() -> void:
 	if game_over:

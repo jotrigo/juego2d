@@ -11,18 +11,20 @@ const SLIME_SCENE := preload("res://scenes/enemies/Slime.tscn")
 @export var start_interval: float = 2.0
 @export var min_interval: float = 0.5
 @export var max_active: int = 60
-@export var spawn_margin: float = 120.0   ## distancia extra más allá del borde de pantalla
-@export var min_player_distance: float = 420.0
+@export var spawn_margin: float = 140.0   ## distancia horizontal extra más allá del borde de pantalla
+@export var min_player_distance: float = 380.0
 
 var _player: Node2D
 var _arena_rect: Rect2
+var _ground_y: float = 1250.0   ## altura de la superficie del suelo
 var _time: float = 0.0
 var _spawn_accum: float = 0.0
 var _active: bool = true
 
-func setup(player: Node2D, arena_rect: Rect2) -> void:
+func setup(player: Node2D, arena_rect: Rect2, ground_y: float) -> void:
 	_player = player
 	_arena_rect = arena_rect
+	_ground_y = ground_y
 
 func _process(delta: float) -> void:
 	if not _active or _player == null or not is_instance_valid(_player):
@@ -59,21 +61,28 @@ func _spawn_one() -> void:
 	slime.global_position = pos
 	enemy_spawned.emit(slime)
 
-## Elige un punto en anillo alrededor del jugador: fuera de pantalla pero dentro
-## de la arena. Intenta varias veces y recorta al rectángulo de la arena.
+## Genera a un costado del jugador (izquierda o derecha), fuera de la pantalla y
+## justo por encima del suelo, para que caigan y caminen hacia el jugador.
 func _pick_spawn_position() -> Vector2:
 	var viewport_size := get_viewport().get_visible_rect().size
-	var off_screen: float = max(viewport_size.x, viewport_size.y) * 0.5 + spawn_margin
-	var radius: float = max(off_screen, min_player_distance)
-	for _attempt in range(12):
-		var angle := randf() * TAU
-		var pos: Vector2 = _player.global_position + Vector2(cos(angle), sin(angle)) * radius
-		pos.x = clamp(pos.x, _arena_rect.position.x + 40.0, _arena_rect.end.x - 40.0)
-		pos.y = clamp(pos.y, _arena_rect.position.y + 40.0, _arena_rect.end.y - 40.0)
-		if pos.distance_to(_player.global_position) >= min_player_distance * 0.7:
-			return pos
-	# Reserva: esquina opuesta si todo falla.
-	return _arena_rect.position + _arena_rect.size * 0.5
+	var off_screen: float = viewport_size.x * 0.5 + spawn_margin
+	# Lado preferente: el que quede dentro de la arena; si ambos sirven, al azar.
+	var left_x := _player.global_position.x - off_screen
+	var right_x := _player.global_position.x + off_screen
+	var candidates: Array[float] = []
+	if left_x > _arena_rect.position.x + 40.0:
+		candidates.append(left_x)
+	if right_x < _arena_rect.end.x - 40.0:
+		candidates.append(right_x)
+	var x: float
+	if candidates.is_empty():
+		# Muy cerca de un borde: aparecer en el lado con más espacio.
+		x = right_x if _player.global_position.x < _arena_rect.get_center().x else left_x
+	else:
+		x = candidates[randi() % candidates.size()]
+	x = clamp(x, _arena_rect.position.x + 40.0, _arena_rect.end.x - 40.0)
+	# Aparece un poco por encima del suelo; la gravedad los asienta.
+	return Vector2(x, _ground_y - 60.0)
 
 ## Detiene la generación (llamado al aparecer el jefe).
 func stop() -> void:

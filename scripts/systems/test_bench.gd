@@ -101,6 +101,8 @@ func _make_slime_at(pos: Vector2) -> Node:
 	var slime: Node = load("res://scenes/enemies/Slime.tscn").instantiate()
 	add_child(slime)
 	slime.global_position = pos
+	# Congelamos su física (gravedad/persecución) para pruebas deterministas.
+	slime.set_physics_process(false)
 	return slime
 
 func _test_projectile_damage_and_pierce() -> void:
@@ -148,6 +150,7 @@ func _test_golem_wave() -> void:
 	var player: Node = load("res://scenes/player/Player.tscn").instantiate()
 	add_child(player)
 	player.global_position = Vector2(1500, 500)
+	player.set_physics_process(false)  # congelar gravedad para el test
 	await get_tree().physics_frame
 	var hp_before: float = player.health
 	var wave: Node = load("res://scenes/enemies/GolemWave.tscn").instantiate()

@@ -12,6 +12,10 @@ signal experience_gained(amount: int)   # reenvía la exp recogida al sistema de
 @export var max_health: float = 100.0
 @export var invuln_time: float = 0.5
 @export var anim_fps: float = 10.0
+# Física de plataformas.
+@export var gravity: float = 1400.0
+@export var jump_velocity: float = 560.0   ## impulso de salto (magnitud)
+@export var air_control: float = 0.85      ## factor de control horizontal en el aire
 
 # Texturas por estado (spritesheets horizontales de 16x24).
 const TEX_IDLE := preload("res://assets/sprites/player_idle.png")
@@ -60,12 +64,19 @@ func _physics_process(delta: float) -> void:
 	_check_contact_damage()
 	_update_animation(delta)
 
-func _handle_movement(_delta: float) -> void:
-	# Vector de entrada normalizado => diagonal no es más rápida.
-	var input_dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	velocity = input_dir * move_speed
+func _handle_movement(delta: float) -> void:
+	# Gravedad: se acumula mientras no estemos en el suelo.
+	if not is_on_floor():
+		velocity.y += gravity * delta
+	# Movimiento horizontal (con algo menos de control en el aire).
+	var dir := Input.get_axis("move_left", "move_right")
+	var control := 1.0 if is_on_floor() else air_control
+	velocity.x = dir * move_speed * control
+	# Salto: solo desde el suelo.
+	if Input.is_action_just_pressed("jump") and is_on_floor():
+		velocity.y = -jump_velocity
 	move_and_slide()
-	# El mago mira hacia el mouse volteando el sprite (no lo rotamos: es top-down).
+	# El mago mira hacia el mouse volteando el sprite.
 	var to_mouse := get_global_mouse_position() - global_position
 	if absf(to_mouse.x) > 4.0:
 		sprite.flip_h = to_mouse.x < 0.0
@@ -83,7 +94,7 @@ func _update_animation(delta: float) -> void:
 	var new_state: AnimState
 	if _shoot_timer > 0.0:
 		new_state = AnimState.SHOOTING
-	elif velocity.length() > 5.0:
+	elif absf(velocity.x) > 5.0:
 		new_state = AnimState.MOVING
 	else:
 		new_state = AnimState.IDLE

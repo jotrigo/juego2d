@@ -14,6 +14,7 @@ signal health_changed(current: float, maximum: float)
 @export var wave_damage: float = 25.0
 @export var attack_cooldown: float = 4.0
 @export var telegraph_time: float = 1.1
+@export var gravity: float = 1400.0
 
 @onready var visual: Node2D = $Visual
 @onready var attack_timer: Timer = $AttackTimer
@@ -36,17 +37,22 @@ func _ready() -> void:
 	attack_timer.start()
 	_spawn_effect()
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if _dead:
 		return
+	# Gravedad.
+	if not is_on_floor():
+		velocity.y += gravity * delta
 	if _player == null or not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player")
+		velocity.x = 0.0
+		move_and_slide()
 		return
+	# Persecución horizontal; se detiene mientras ataca.
 	if _attacking:
-		velocity = Vector2.ZERO
+		velocity.x = 0.0
 	else:
-		var dir := (_player.global_position - global_position).normalized()
-		velocity = dir * move_speed
+		velocity.x = signf(_player.global_position.x - global_position.x) * move_speed
 	move_and_slide()
 
 func get_contact_damage() -> float:
