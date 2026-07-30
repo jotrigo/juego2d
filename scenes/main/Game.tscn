@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://bgame001"]
+[gd_scene load_steps=14 format=3 uid="uid://bgame001"]
 
 [ext_resource type="Script" path="res://scripts/systems/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/systems/enemy_spawner.gd" id="2_spawn"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://bhud001" path="res://scenes/ui/HUD.tscn" id="4_hud"]
 [ext_resource type="PackedScene" uid="uid://brune001" path="res://scenes/ui/RuneSelectionUI.tscn" id="5_rune"]
 [ext_resource type="PackedScene" uid="uid://bend001" path="res://scenes/ui/EndScreen.tscn" id="6_end"]
+[ext_resource type="PackedScene" uid="uid://bforestbg001" path="res://scenes/main/ForestBackground.tscn" id="7_forest"]
 
 [sub_resource type="RectangleShape2D" id="RectH"]
 size = Vector2(2280, 40)
@@ -28,10 +29,12 @@ size = Vector2(140, 140)
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
 
+[node name="ForestBackground" parent="." instance=ExtResource("7_forest")]
+
 [node name="Arena" type="Node2D" parent="."]
 
 [node name="Floor" type="Polygon2D" parent="Arena"]
-color = Color(0.13, 0.14, 0.19, 1)
+color = Color(0.13, 0.14, 0.19, 0.35)
 polygon = PackedVector2Array(0, 0, 2200, 0, 2200, 1400, 0, 1400)
 
 [node name="WallTop" type="StaticBody2D" parent="Arena" groups=["walls"]]
