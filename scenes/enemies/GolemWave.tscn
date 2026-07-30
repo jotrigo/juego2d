@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3 uid="uid://bgolemwave001"]
+
+[ext_resource type="Script" path="res://scripts/enemies/golem_wave.gd" id="1_wave"]
+
+[node name="GolemWave" type="Node2D"]
+script = ExtResource("1_wave")
+
+[node name="Telegraph" type="Polygon2D" parent="."]
+color = Color(1, 0.2, 0.2, 0.25)
+
+[node name="Wave" type="Polygon2D" parent="."]
+color = Color(0.8, 0.4, 1, 0)

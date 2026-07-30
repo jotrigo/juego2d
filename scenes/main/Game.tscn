@@ -1,0 +1,160 @@
+[gd_scene load_steps=13 format=3 uid="uid://bgame001"]
+
+[ext_resource type="Script" path="res://scripts/systems/game.gd" id="1_game"]
+[ext_resource type="Script" path="res://scripts/systems/enemy_spawner.gd" id="2_spawn"]
+[ext_resource type="Script" path="res://scripts/systems/level_system.gd" id="3_level"]
+[ext_resource type="PackedScene" uid="uid://bhud001" path="res://scenes/ui/HUD.tscn" id="4_hud"]
+[ext_resource type="PackedScene" uid="uid://brune001" path="res://scenes/ui/RuneSelectionUI.tscn" id="5_rune"]
+[ext_resource type="PackedScene" uid="uid://bend001" path="res://scenes/ui/EndScreen.tscn" id="6_end"]
+
+[sub_resource type="RectangleShape2D" id="RectH"]
+size = Vector2(2280, 40)
+
+[sub_resource type="RectangleShape2D" id="RectV"]
+size = Vector2(40, 1480)
+
+[sub_resource type="RectangleShape2D" id="RectO1"]
+size = Vector2(120, 120)
+
+[sub_resource type="RectangleShape2D" id="RectO2"]
+size = Vector2(160, 100)
+
+[sub_resource type="RectangleShape2D" id="RectO3"]
+size = Vector2(200, 120)
+
+[sub_resource type="RectangleShape2D" id="RectO5"]
+size = Vector2(140, 140)
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="Arena" type="Node2D" parent="."]
+
+[node name="Floor" type="Polygon2D" parent="Arena"]
+color = Color(0.13, 0.14, 0.19, 1)
+polygon = PackedVector2Array(0, 0, 2200, 0, 2200, 1400, 0, 1400)
+
+[node name="WallTop" type="StaticBody2D" parent="Arena" groups=["walls"]]
+position = Vector2(1100, 0)
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Arena/WallTop"]
+shape = SubResource("RectH")
+
+[node name="Vis" type="Polygon2D" parent="Arena/WallTop"]
+color = Color(0.3, 0.32, 0.42, 1)
+polygon = PackedVector2Array(-1140, -20, 1140, -20, 1140, 20, -1140, 20)
+
+[node name="WallBottom" type="StaticBody2D" parent="Arena" groups=["walls"]]
+position = Vector2(1100, 1400)
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Arena/WallBottom"]
+shape = SubResource("RectH")
+
+[node name="Vis" type="Polygon2D" parent="Arena/WallBottom"]
+color = Color(0.3, 0.32, 0.42, 1)
+polygon = PackedVector2Array(-1140, -20, 1140, -20, 1140, 20, -1140, 20)
+
+[node name="WallLeft" type="StaticBody2D" parent="Arena" groups=["walls"]]
+position = Vector2(0, 700)
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Arena/WallLeft"]
+shape = SubResource("RectV")
+
+[node name="Vis" type="Polygon2D" parent="Arena/WallLeft"]
+color = Color(0.3, 0.32, 0.42, 1)
+polygon = PackedVector2Array(-20, -740, 20, -740, 20, 740, -20, 740)
+
+[node name="WallRight" type="StaticBody2D" parent="Arena" groups=["walls"]]
+position = Vector2(2200, 700)
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Arena/WallRight"]
+shape = SubResource("RectV")
+
+[node name="Vis" type="Polygon2D" parent="Arena/WallRight"]
+color = Color(0.3, 0.32, 0.42, 1)
+polygon = PackedVector2Array(-20, -740, 20, -740, 20, 740, -20, 740)
+
+[node name="Obstacle1" type="StaticBody2D" parent="Arena" groups=["walls"]]
+position = Vector2(700, 450)
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Arena/Obstacle1"]
+shape = SubResource("RectO1")
+
+[node name="Vis" type="Polygon2D" parent="Arena/Obstacle1"]
+color = Color(0.36, 0.3, 0.48, 1)
+polygon = PackedVector2Array(-60, -60, 60, -60, 60, 60, -60, 60)
+
+[node name="Obstacle2" type="StaticBody2D" parent="Arena" groups=["walls"]]
+position = Vector2(1500, 450)
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Arena/Obstacle2"]
+shape = SubResource("RectO2")
+
+[node name="Vis" type="Polygon2D" parent="Arena/Obstacle2"]
+color = Color(0.36, 0.3, 0.48, 1)
+polygon = PackedVector2Array(-80, -50, 80, -50, 80, 50, -80, 50)
+
+[node name="Obstacle3" type="StaticBody2D" parent="Arena" groups=["walls"]]
+position = Vector2(1100, 950)
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Arena/Obstacle3"]
+shape = SubResource("RectO3")
+
+[node name="Vis" type="Polygon2D" parent="Arena/Obstacle3"]
+color = Color(0.36, 0.3, 0.48, 1)
+polygon = PackedVector2Array(-100, -60, 100, -60, 100, 60, -100, 60)
+
+[node name="Obstacle4" type="StaticBody2D" parent="Arena" groups=["walls"]]
+position = Vector2(500, 1050)
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Arena/Obstacle4"]
+shape = SubResource("RectO1")
+
+[node name="Vis" type="Polygon2D" parent="Arena/Obstacle4"]
+color = Color(0.36, 0.3, 0.48, 1)
+polygon = PackedVector2Array(-60, -60, 60, -60, 60, 60, -60, 60)
+
+[node name="Obstacle5" type="StaticBody2D" parent="Arena" groups=["walls"]]
+position = Vector2(1750, 1000)
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Arena/Obstacle5"]
+shape = SubResource("RectO5")
+
+[node name="Vis" type="Polygon2D" parent="Arena/Obstacle5"]
+color = Color(0.36, 0.3, 0.48, 1)
+polygon = PackedVector2Array(-70, -70, 70, -70, 70, 70, -70, 70)
+
+[node name="PlayerSpawn" type="Marker2D" parent="."]
+position = Vector2(1100, 700)
+
+[node name="EnemySpawner" type="Node2D" parent="."]
+script = ExtResource("2_spawn")
+
+[node name="LevelSystem" type="Node" parent="."]
+script = ExtResource("3_level")
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="HUD" parent="UILayer" instance=ExtResource("4_hud")]
+
+[node name="RuneSelectionUI" parent="UILayer" instance=ExtResource("5_rune")]
+
+[node name="EndScreen" parent="UILayer" instance=ExtResource("6_end")]

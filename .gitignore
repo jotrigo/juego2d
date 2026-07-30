@@ -1,0 +1,12 @@
+# Godot 4+ specific ignores
+.godot/
+
+# Exportaciones / builds
+/builds/
+/export/
+*.exe
+*.pck
+*.zip
+
+# macOS
+.DS_Store
