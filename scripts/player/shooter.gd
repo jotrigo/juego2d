@@ -4,6 +4,8 @@ class_name Shooter
 ## cadencia (cooldown) y genera los proyectiles distribuidos en abanico hacia
 ## el mouse. Se mantiene separado del movimiento para respetar la modularidad.
 
+signal fired   ## se emite cada vez que se lanza una tanda de proyectiles
+
 const PROJECTILE_SCENE := preload("res://scenes/spells/MagicProjectile.tscn")
 
 var spell: SpellData
@@ -39,6 +41,7 @@ func _fire() -> void:
 			offset = -total_spread * 0.5 + total_spread * float(i) / float(count - 1)
 		var dir := base_dir.rotated(offset)
 		_spawn_projectile(origin, dir)
+	fired.emit()
 
 func _spawn_projectile(origin: Vector2, dir: Vector2) -> void:
 	var proj := PROJECTILE_SCENE.instantiate()

@@ -13,11 +13,15 @@ signal died(position: Vector2, exp_value: int)
 @export var separation_radius: float = 34.0
 @export var separation_strength: float = 40.0
 
+@export var anim_fps: float = 8.0   ## velocidad de la animación de caminado
+
 @onready var visual: Node2D = $Visual
+@onready var sprite: Sprite2D = $Visual/Sprite
 
 var health: float
 var _player: Node2D
 var _dead: bool = false
+var _anim_time: float = 0.0
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -36,6 +40,14 @@ func _physics_process(_delta: float) -> void:
 	var sep := _separation_vector()
 	velocity = chase + sep
 	move_and_slide()
+	_animate(velocity)
+
+## Cicla los 4 frames del spritesheet y voltea el sprite según la dirección.
+func _animate(vel: Vector2) -> void:
+	_anim_time += get_physics_process_delta_time() * anim_fps
+	sprite.frame = int(_anim_time) % sprite.hframes
+	if absf(vel.x) > 1.0:
+		sprite.flip_h = vel.x < 0.0
 
 ## Suma de repulsiones respecto a enemigos dentro del radio de separación.
 func _separation_vector() -> Vector2:

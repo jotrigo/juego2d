@@ -11,8 +11,21 @@ signal experience_gained(amount: int)   # reenvía la exp recogida al sistema de
 @export var move_speed: float = 260.0
 @export var max_health: float = 100.0
 @export var invuln_time: float = 0.5
+@export var anim_fps: float = 10.0
+
+# Texturas por estado (spritesheets horizontales de 16x24).
+const TEX_IDLE := preload("res://assets/sprites/player_idle.png")
+const TEX_RUN := preload("res://assets/sprites/player_run.png")
+const TEX_SHOOT := preload("res://assets/sprites/player_shoot.png")
+const IDLE_FRAMES := 4
+const RUN_FRAMES := 4
+const SHOOT_FRAMES := 5
+
+## Estados de animación, en orden de prioridad ascendente.
+enum AnimState { IDLE, MOVING, SHOOTING }
 
 @onready var visual: Node2D = $Visual
+@onready var sprite: Sprite2D = $Visual/Sprite
 @onready var hurtbox: Area2D = $Hurtbox
 @onready var muzzle: Marker2D = $Muzzle
 @onready var shooter: Node = $Shooter
@@ -20,6 +33,9 @@ signal experience_gained(amount: int)   # reenvía la exp recogida al sistema de
 var health: float
 var _invulnerable: bool = false
 var _dead: bool = false
+var _anim_state: AnimState = AnimState.IDLE
+var _anim_time: float = 0.0
+var _shoot_timer: float = 0.0   # cuánto tiempo más mostrar la animación de disparo
 
 # Datos actuales del hechizo. Se crean a partir de un SpellData por defecto y las
 # runas los modifican in situ. El Shooter lee esta misma instancia.
@@ -32,22 +48,65 @@ func _ready() -> void:
 	health_changed.emit(health, max_health)
 	if shooter and shooter.has_method("set_spell"):
 		shooter.set_spell(spell)
+	# Mostrar la animación de disparo cuando el shooter lanza proyectiles.
+	if shooter and shooter.has_signal("fired"):
+		shooter.fired.connect(_on_shooter_fired)
+	_apply_anim_textures()
 
 func _physics_process(delta: float) -> void:
 	if _dead:
 		return
 	_handle_movement(delta)
 	_check_contact_damage()
+	_update_animation(delta)
 
 func _handle_movement(_delta: float) -> void:
 	# Vector de entrada normalizado => diagonal no es más rápida.
 	var input_dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = input_dir * move_speed
 	move_and_slide()
-	# Orientar visualmente el mago hacia el mouse.
+	# El mago mira hacia el mouse volteando el sprite (no lo rotamos: es top-down).
 	var to_mouse := get_global_mouse_position() - global_position
-	if to_mouse.length() > 4.0:
-		visual.rotation = to_mouse.angle()
+	if absf(to_mouse.x) > 4.0:
+		sprite.flip_h = to_mouse.x < 0.0
+
+# --- Animación por estado -----------------------------------------------------
+
+func _on_shooter_fired() -> void:
+	# Reinicia el temporizador para que se vea toda la animación de disparo.
+	_shoot_timer = float(SHOOT_FRAMES) / anim_fps
+
+func _update_animation(delta: float) -> void:
+	if _shoot_timer > 0.0:
+		_shoot_timer -= delta
+	# Prioridad: disparo > movimiento > quieto.
+	var new_state: AnimState
+	if _shoot_timer > 0.0:
+		new_state = AnimState.SHOOTING
+	elif velocity.length() > 5.0:
+		new_state = AnimState.MOVING
+	else:
+		new_state = AnimState.IDLE
+	if new_state != _anim_state:
+		_anim_state = new_state
+		_anim_time = 0.0
+		_apply_anim_textures()
+	# Avanzar el frame actual dentro del spritesheet del estado.
+	_anim_time += delta * anim_fps
+	sprite.frame = int(_anim_time) % maxi(sprite.hframes, 1)
+
+## Ajusta la textura y la cantidad de frames según el estado actual.
+func _apply_anim_textures() -> void:
+	match _anim_state:
+		AnimState.SHOOTING:
+			sprite.texture = TEX_SHOOT
+			sprite.hframes = SHOOT_FRAMES
+		AnimState.MOVING:
+			sprite.texture = TEX_RUN
+			sprite.hframes = RUN_FRAMES
+		_:
+			sprite.texture = TEX_IDLE
+			sprite.hframes = IDLE_FRAMES
 
 ## Daño por contacto: si algún enemigo solapa el hurtbox y no somos invulnerables.
 func _check_contact_damage() -> void:
